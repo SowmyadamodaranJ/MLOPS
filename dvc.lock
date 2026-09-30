@@ -1,0 +1,168 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python src/stages/prepare.py
+    deps:
+    - path: data/raw/PdM_errors.csv
+      hash: md5
+      md5: 4a4dd1d8d4e34eafa7b73dde59c3fc0d
+      size: 129077
+    - path: data/raw/PdM_failures.csv
+      hash: md5
+      md5: fe86b13f1665f903ae86bee39c3578be
+      size: 24336
+    - path: data/raw/PdM_machines.csv
+      hash: md5
+      md5: 9b7219ed32375becf3ebd110e726c615
+      size: 1582
+    - path: data/raw/PdM_maint.csv
+      hash: md5
+      md5: 476bde7f5b5273586219732dca70074c
+      size: 104903
+    - path: data/raw/PdM_telemetry.csv
+      hash: md5
+      md5: 8c17df8675b482cddce13fdffbc05b3b
+      size: 80142329
+    - path: src/data
+      hash: md5
+      md5: 5c9db7725ccfcde815319e256bc87fb4.dir
+      size: 90220
+      nfiles: 10
+    - path: src/stages/prepare.py
+      hash: md5
+      md5: 938b5bbaea2b664a2989fd7e658c0531
+      size: 2021
+    params:
+      configs/config.yaml:
+        feature_engineering.failure_label_window_hours: 24
+    outs:
+    - path: data/interim/cleaned_dataset.csv
+      hash: md5
+      md5: 8879435e6af301db08a6c82d11d3e0bb
+      size: 241992079
+    - path: data/interim/merged_dataset.csv
+      hash: md5
+      md5: d484420fe4e0f77e6b087a407ef1c639
+      size: 243742006
+  featurize:
+    cmd: python src/stages/featurize.py
+    deps:
+    - path: data/interim/cleaned_dataset.csv
+      hash: md5
+      md5: 8879435e6af301db08a6c82d11d3e0bb
+      size: 241992079
+    - path: src/features
+      hash: md5
+      md5: a619d9285e70cbf5c4074f44e5a632a3.dir
+      size: 88253
+      nfiles: 8
+    - path: src/stages/featurize.py
+      hash: md5
+      md5: e9585377f98e00ff3facfca317cae737
+      size: 2139
+    params:
+      configs/config.yaml:
+        feature_engineering.error_window_hours: 24
+        feature_engineering.lag_hours:
+        - 1
+        - 3
+        - 24
+        feature_engineering.rolling_window_hours:
+        - 3
+        - 24
+        preprocessing.split_ratio: 0.7
+        preprocessing.split_strategy: chronological
+    outs:
+    - path: data/processed/features_engineered.csv
+      hash: md5
+      md5: 836e790fda90c227810eaf9581ab0ced
+      size: 1937031969
+    - path: data/processed/test_data.csv
+      hash: md5
+      md5: 47ff2cfc3b571a64a01f3931a64acbf3
+      size: 578438173
+    - path: data/processed/train_data.csv
+      hash: md5
+      md5: 079ddfff78f1fff50d84e38a4f3912d6
+      size: 1352982654
+  train:
+    cmd: python src/stages/train.py
+    deps:
+    - path: data/processed/train_data.csv
+      hash: md5
+      md5: 079ddfff78f1fff50d84e38a4f3912d6
+      size: 1352982654
+    - path: src/models
+      hash: md5
+      md5: dbac2dca0c359a54a3be4618aeb4dd4a.dir
+      size: 55577
+      nfiles: 6
+    - path: src/stages/train.py
+      hash: md5
+      md5: ecb9ec3aaa5f3ed3743104beb3d85605
+      size: 2977
+    params:
+      configs/config.yaml:
+        models.xgboost.colsample_bytree: 0.8
+        models.xgboost.learning_rate: 0.1
+        models.xgboost.max_depth: 6
+        models.xgboost.n_estimators: 200
+        models.xgboost.scale_pos_weight: 10
+        models.xgboost.subsample: 0.8
+    outs:
+    - path: models/saved_models/best_model.joblib
+      hash: md5
+      md5: ebe73ff71c6e5e5a5c319298aa32d739
+      size: 2085970
+    - path: models/saved_models/feature_names.pkl
+      hash: md5
+      md5: d20c09beead071b91555c31fe3ba5882
+      size: 765
+    - path: models/saved_models/label_encoder.pkl
+      hash: md5
+      md5: 9c2ba38d23287626987875eef9ac0fa3
+      size: 43
+    - path: models/saved_models/model_manifest.json
+      hash: md5
+      md5: e22ecc17b4a3c71778228d0424ccc9a1
+      size: 4099
+    - path: models/saved_models/preprocessor.pkl
+      hash: md5
+      md5: 7d1e55650014e21b4568ed3e3d1fc531
+      size: 4
+  evaluate:
+    cmd: python src/stages/evaluate.py
+    deps:
+    - path: data/processed/test_data.csv
+      hash: md5
+      md5: 47ff2cfc3b571a64a01f3931a64acbf3
+      size: 578438173
+    - path: models/saved_models/best_model.joblib
+      hash: md5
+      md5: ebe73ff71c6e5e5a5c319298aa32d739
+      size: 2085970
+    - path: models/saved_models/feature_names.pkl
+      hash: md5
+      md5: d20c09beead071b91555c31fe3ba5882
+      size: 765
+    - path: src/evaluation
+      hash: md5
+      md5: 00c0688810682cb89d744e2f6af53d33.dir
+      size: 226467
+      nfiles: 18
+    - path: src/stages/evaluate.py
+      hash: md5
+      md5: 56d40be97524dc9c4fbc4c8ce2928a75
+      size: 3716
+    params:
+      configs/config.yaml:
+        evaluation.primary_metric: f1_score
+    outs:
+    - path: reports/metrics/evaluation_metrics.csv
+      hash: md5
+      md5: 0acd1703e9d8e968a456645a7720c7b6
+      size: 576
+    - path: reports/metrics/model_comparison.csv
+      hash: md5
+      md5: df90503a3ea2fb7ff7a8f39218b68d43
+      size: 238

@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base Layer ──────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --color-primary: 99 102 241;
+    --color-surface: 15 17 23;
+    --color-surface-50: 26 29 39;
+    --color-success: 16 185 129;
+    --color-warning: 245 158 11;
+    --color-danger: 244 63 94;
+    --glass-bg: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99,102,241,0.3) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(99,102,241,0.3);
+    border-radius: 20px;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0a0b10;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Keyboard focus ring for accessibility */
+  :focus-visible {
+    outline: 2px solid rgba(99,102,241,0.6);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  /* Selection color */
+  ::selection {
+    background: rgba(99,102,241,0.3);
+    color: #fff;
+  }
+}
+
+/* ─── Component Layer ─────────────────────────────────────────────────── */
+@layer components {
+  /* Glass Card — the signature enterprise component */
+  .glass-card {
+    @apply relative overflow-hidden rounded-2xl border border-white/[0.06];
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03),
+      0 8px 32px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), transparent 50%, rgba(139,92,246,0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* KPI Metric Cards */
+  .metric-card {
+    @apply glass-card p-5 transition-all duration-300;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(99,102,241,0.15),
+      0 12px 40px rgba(0,0,0,0.5),
+      0 0 60px rgba(99,102,241,0.06);
+  }
+
+  /* Status Chips */
+  .status-chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase;
+  }
+
+  .status-chip.healthy {
+    @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+  }
+
+  .status-chip.warning {
+    @apply bg-amber-500/10 text-amber-400 border border-amber-500/20;
+  }
+
+  .status-chip.critical {
+    @apply bg-rose-500/10 text-rose-400 border border-rose-500/20;
+  }
+
+  /* Sidebar */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 transition-all duration-200 cursor-pointer;
+  }
+
+  .sidebar-item:hover {
+    @apply bg-white/[0.04] text-gray-200;
+  }
+
+  .sidebar-item.active {
+    @apply bg-factory-500/10 text-factory-400 border border-factory-500/15;
+    box-shadow: 0 0 20px rgba(99,102,241,0.08);
+  }
+
+  /* Section Titles */
+  .section-title {
+    @apply text-lg font-bold text-white tracking-tight flex items-center gap-2;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    @apply h-2 rounded-full overflow-hidden bg-white/5;
+  }
+
+  .progress-bar .fill {
+    @apply h-full rounded-full transition-all duration-1000 ease-out;
+  }
+
+  /* Shimmer Loading */
+  .shimmer {
+    @apply relative overflow-hidden;
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+}
+
+/* ─── Utilities ───────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #818cf8, #a78bfa, #c084fc);
+  }
+
+  .text-gradient-brand {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(90deg, #ffffff 30%, #a5b4fc 70%);
+  }
+
+  .glow-sm {
+    box-shadow: 0 0 15px rgba(99,102,241,0.15);
+  }
+
+  .glow-md {
+    box-shadow: 0 0 30px rgba(99,102,241,0.2);
+  }
+}

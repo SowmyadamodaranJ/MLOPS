@@ -1,0 +1,83 @@
+# ============================================================
+# .dockerignore — Smart Factory PDM
+# Prevents large/sensitive files from entering the Docker build
+# context, dramatically reducing build time and image size.
+# ============================================================
+
+# Python cache & compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Node / Frontend artefacts
+frontend/node_modules/
+frontend/dist/
+
+# Git & IDE metadata
+.git/
+.gitignore
+.gitattributes
+.claude/
+.agents/
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Large raw data files (CSVs) — not needed inside containers
+data/raw/
+data/interim/
+data/processed/
+
+# Jupyter notebooks (not needed at runtime)
+notebooks/
+
+# Development & test artefacts
+tests/
+*.test.*
+*.spec.*
+coverage/
+.coverage
+htmlcov/
+
+# Log files
+logs/
+*.log
+
+# Backup archives
+backups/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Python packaging artefacts
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Secrets / local env files — never bake into images!
+.env
+.env.development
+.env.production
+.env.local
+
+# DVC state
+.dvc/tmp/
+.dvc/cache/

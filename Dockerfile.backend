@@ -1,0 +1,108 @@
+# ==========================================
+# Multi-Stage Production Dockerfile for Backend
+# Smart Factory Predictive Maintenance API
+# ==========================================
+#
+# Build:  docker build -f Dockerfile.backend -t pdm-backend:2.0.0 .
+# Run:    docker run -p 5000:5000 --env-file .env pdm-backend:2.0.0
+#
+# ── Stage 1: Builder (compile dependencies) ─────────────────
+FROM python:3.10-slim AS builder
+
+LABEL stage="builder"
+
+WORKDIR /build
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build-time system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy dependency manifest first for Docker layer caching
+COPY requirements.txt .
+
+# Install all Python deps + production WSGI server into a user-local prefix
+# so they can be copied cleanly into the runtime stage.
+RUN pip install --user --no-cache-dir \
+    -r requirements.txt \
+    gunicorn==21.2.0 \
+    psutil==5.9.8 \
+    evidently==0.4.30
+
+# ── Stage 2: Final Production Runtime ───────────────────────
+FROM python:3.10-slim AS runtime
+
+# ── Image Labels ────────────────────────────────────────────
+ARG VERSION=2.0.0
+ARG BUILD_DATE
+ARG GIT_SHA
+LABEL org.opencontainers.image.title="Smart Factory PDM Backend" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_SHA}" \
+      org.opencontainers.image.source="https://github.com/your-org/smart_factory_pdm" \
+      org.opencontainers.image.description="Flask/Gunicorn ML inference API for predictive maintenance"
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Make pip packages installed by builder available to appuser
+    PATH="/home/appuser/.local/bin:${PATH}" \
+    PYTHONPATH="/app" \
+    # Application defaults — all overridable via .env or docker-compose env_file
+    FLASK_ENV=production \
+    FLASK_DEBUG=0 \
+    FLASK_PORT=5000 \
+    LOG_LEVEL=INFO
+
+# Install only minimal runtime system libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    # Create non-root user for security
+    && useradd --create-home --shell /bin/bash appuser \
+    # Create writable runtime directories with correct ownership
+    && mkdir -p /app/logs /app/data /app/models /app/reports \
+    && chown -R appuser:appuser /app
+
+# Copy installed Python packages from builder stage into appuser's home
+COPY --from=builder /root/.local /home/appuser/.local
+RUN chown -R appuser:appuser /home/appuser/.local
+
+# ── Application Source ───────────────────────────────────────
+# Copy only what the runtime needs — not raw data, notebooks, or node_modules
+# (those are excluded by .dockerignore as well)
+COPY --chown=appuser:appuser backend/       /app/backend/
+COPY --chown=appuser:appuser src/           /app/src/
+COPY --chown=appuser:appuser configs/       /app/configs/
+COPY --chown=appuser:appuser models/        /app/models/
+COPY --chown=appuser:appuser reports/       /app/reports/
+COPY --chown=appuser:appuser gunicorn.conf.py /app/gunicorn.conf.py
+COPY --chown=appuser:appuser VERSION        /app/VERSION
+
+# ── Switch to Non-Root User ──────────────────────────────────
+USER appuser
+
+EXPOSE 5000
+
+# ── Health Check ─────────────────────────────────────────────
+# start-period gives Gunicorn time to load the ML model before
+# Docker starts counting health check failures.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -sf http://localhost:5000/health | python3 -c \
+      "import sys,json; d=json.load(sys.stdin); sys.exit(0 if d.get('data',{}).get('status')=='healthy' else 1)" \
+  || exit 1
+
+# ── Entrypoint ────────────────────────────────────────────────
+# Gunicorn reads gunicorn.conf.py via -c flag.
+# create_app() factory pattern is required for Gunicorn + Flask app factory.
+CMD ["gunicorn", \
+     "-c", "gunicorn.conf.py", \
+     "backend.app:create_app()"]

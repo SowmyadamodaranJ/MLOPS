@@ -1,0 +1,142 @@
+# ============================================================
+# Smart Factory Predictive Maintenance - Configuration File
+# ============================================================
+
+project:
+  name: "Smart Factory Predictive Maintenance"
+  version: "2.0.0"
+  phase: "Phase 2 - ML Pipeline Enhancements"
+
+# --------------- Data Paths ---------------
+paths:
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  interim_data_dir: "data/interim"
+  logs_dir: "logs"
+  models_dir: "models/saved_models"
+  reports_dir: "reports"
+  figures_dir: "reports/figures"
+  metrics_dir: "reports/metrics"
+  plots_dir: "reports/plots"
+
+# --------------- Raw File Names ---------------
+raw_files:
+  telemetry: "PdM_telemetry.csv"
+  errors: "PdM_errors.csv"
+  failures: "PdM_failures.csv"
+  maint: "PdM_maint.csv"
+  machines: "PdM_machines.csv"
+
+# --------------- Processed File Names ---------------
+processed_files:
+  merged_dataset: "merged_dataset.csv"
+  features_dataset: "features_engineered.csv"
+  train_data: "train_data.csv"
+  test_data: "test_data.csv"
+
+# --------------- Feature Engineering ---------------
+feature_engineering:
+  rolling_window_hours: [3, 24]   # Rolling stat windows
+  lag_hours: [1, 3, 24]           # Lag feature hours
+  error_window_hours: 24          # Error count window (hours)
+  failure_label_window_hours: 24  # Label: failure within next N hours
+
+# --------------- Preprocessing ---------------
+preprocessing:
+  # ── Split strategy ──────────────────────────────────────────────────────
+  # IMPORTANT: Always use chronological split for time-series data.
+  # Chronological split sorts by datetime and takes first split_ratio%
+  # as train, the remaining (1 - split_ratio)% as test.
+  split_strategy: "chronological"   # chronological | stratified_random
+  split_ratio: 0.70                 # 70% train / 30% test
+  sample_ratio: 1.0                 # 1.0 = use 100% of data (full dataset)
+  test_size: 0.30                   # kept for backward compat
+  random_state: 42
+  scale_features: true
+  scaler: "StandardScaler"          # Applied ONLY to Logistic Regression
+
+# --------------- Models ---------------
+models:
+  logistic_regression:
+    max_iter: 1000
+    random_state: 42
+    class_weight: "balanced"
+
+  decision_tree:
+    max_depth: 10
+    min_samples_split: 10
+    min_samples_leaf: 4
+    random_state: 42
+    class_weight: "balanced"
+
+  random_forest:
+    n_estimators: 100
+    max_depth: 15          # Capped to prevent 61MB models
+    min_samples_split: 5
+    min_samples_leaf: 2
+    random_state: 42
+    n_jobs: -1
+    class_weight: "balanced"
+
+  xgboost:
+    n_estimators: 200
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+    scale_pos_weight: 10    # Handle class imbalance
+    eval_metric: "logloss"
+    use_label_encoder: false
+
+# --------------- Evaluation ---------------
+evaluation:
+  primary_metric: "f1_score"      # Metric used for best-model selection
+  cv_folds: 5
+  threshold: 0.5                  # Default; overridden by optimal threshold
+  optimize_threshold: true        # Find best threshold via PR curve (F2 score)
+  threshold_beta: 2.0             # F-beta weight: recall > precision for PdM
+
+# --------------- MLflow ---------------
+mlflow:
+  experiment_name: "Smart_Factory_Predictive_Maintenance"
+  tracking_uri: "sqlite:///mlflow.db"              # Local SQLite database tracking store
+  registry_model_name: "PdM_BestModel"
+
+# --------------- Hyperparameter Tuning ---------------
+tuning:
+  enabled: true
+  n_iter: 10
+  cv: 5                # Aligned with evaluation.cv_folds (was: 3)
+  random_state: 42
+  use_timeseries_split: true   # Use TimeSeriesSplit instead of StratifiedKFold
+
+# --------------- Feature Selection ---------------
+feature_selection:
+  enabled: true
+  method: "importance_threshold"  # importance_threshold | rfecv
+  importance_threshold: 0.005     # Drop features below 0.5% cumulative importance
+
+# --------------- Logging ---------------
+logging:
+  level: "INFO"
+  format: "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# --------------- Maintenance Decision Engine ---------------
+decision_engine:
+  thresholds:
+    critical: 0.50
+    warning: 0.25
+  health_score:
+    scale: 100.0
+    min_score: 0.0
+    max_score: 100.0
+  urgency:
+    critical: "Immediate"
+    warning: "Scheduled"
+    monitor: "Routine"
+  priority:
+    critical: "P1 - Critical"
+    warning: "P2 - High"
+    monitor: "P3 - Low"

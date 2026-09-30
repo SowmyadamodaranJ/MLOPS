@@ -1,0 +1,73 @@
+stages:
+  prepare:
+    cmd: python src/stages/prepare.py
+    deps:
+      - data/raw/PdM_telemetry.csv
+      - data/raw/PdM_errors.csv
+      - data/raw/PdM_failures.csv
+      - data/raw/PdM_maint.csv
+      - data/raw/PdM_machines.csv
+      - src/stages/prepare.py
+      - src/data
+    params:
+      - configs/config.yaml:
+        - feature_engineering.failure_label_window_hours
+    outs:
+      - data/interim/merged_dataset.csv
+      - data/interim/cleaned_dataset.csv
+
+  featurize:
+    cmd: python src/stages/featurize.py
+    deps:
+      - data/interim/cleaned_dataset.csv
+      - src/stages/featurize.py
+      - src/features
+    params:
+      - configs/config.yaml:
+        - feature_engineering.rolling_window_hours
+        - feature_engineering.lag_hours
+        - feature_engineering.error_window_hours
+        - preprocessing.split_strategy
+        - preprocessing.split_ratio
+    outs:
+      - data/processed/features_engineered.csv
+      - data/processed/train_data.csv
+      - data/processed/test_data.csv
+
+  train:
+    cmd: python src/stages/train.py
+    deps:
+      - data/processed/train_data.csv
+      - src/stages/train.py
+      - src/models
+    params:
+      - configs/config.yaml:
+        - models.xgboost.n_estimators
+        - models.xgboost.max_depth
+        - models.xgboost.learning_rate
+        - models.xgboost.subsample
+        - models.xgboost.colsample_bytree
+        - models.xgboost.scale_pos_weight
+    outs:
+      - models/saved_models/best_model.joblib
+      - models/saved_models/feature_names.pkl
+      - models/saved_models/label_encoder.pkl
+      - models/saved_models/preprocessor.pkl
+      - models/saved_models/model_manifest.json
+
+  evaluate:
+    cmd: python src/stages/evaluate.py
+    deps:
+      - models/saved_models/best_model.joblib
+      - models/saved_models/feature_names.pkl
+      - data/processed/test_data.csv
+      - src/stages/evaluate.py
+      - src/evaluation
+    params:
+      - configs/config.yaml:
+        - evaluation.primary_metric
+    metrics:
+      - reports/metrics/evaluation_metrics.csv:
+          cache: false
+      - reports/metrics/model_comparison.csv:
+          cache: false

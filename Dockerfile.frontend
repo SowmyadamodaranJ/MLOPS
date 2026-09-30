@@ -1,0 +1,73 @@
+# ==========================================
+# Multi-Stage Production Dockerfile for Frontend
+# Smart Factory Predictive Maintenance Dashboard
+# ==========================================
+#
+# Build:
+#   docker build -f Dockerfile.frontend \
+#     --build-arg VITE_API_URL=http://your-backend:5000 \
+#     -t pdm-frontend:2.0.0 .
+#
+# The VITE_API_URL build arg is baked into the static bundle.
+# For Docker Compose deployments, Nginx proxies /api → backend,
+# so VITE_API_URL should remain empty (default) in that setup.
+#
+# ── Stage 1: Build React + TypeScript Bundle ─────────────────
+FROM node:18-alpine AS builder
+
+LABEL stage="builder"
+
+WORKDIR /app
+
+# Build-time arguments — injected during docker build or via CI/CD
+ARG VITE_API_URL=""
+ARG NODE_ENV=production
+
+ENV NODE_ENV=${NODE_ENV} \
+    VITE_API_URL=${VITE_API_URL}
+
+# Copy package manifests first to leverage Docker layer cache —
+# npm ci will only re-run when package-lock.json changes.
+COPY frontend/package.json frontend/package-lock.json ./
+
+# Clean install — reproducible, no package-lock overrides
+RUN npm ci --prefer-offline
+
+# Copy remaining frontend source
+COPY frontend/ .
+
+# Type-check and build production bundle
+RUN npm run build
+
+# ── Stage 2: Serve via Nginx ─────────────────────────────────
+FROM nginx:1.27-alpine AS runtime
+
+# ── Image Labels ─────────────────────────────────────────────
+ARG VERSION=2.0.0
+ARG BUILD_DATE
+ARG GIT_SHA
+LABEL org.opencontainers.image.title="Smart Factory PDM Frontend" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_SHA}" \
+      org.opencontainers.image.description="React dashboard served by Nginx for predictive maintenance"
+
+# Copy built static assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy production Nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Remove default Nginx config to avoid conflicts
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+# ── Health Check ─────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost/nginx-health || exit 1
+
+# Nginx runs as root to bind port 80 inside the container;
+# Docker network isolation and the non-root backend handle the
+# overall security posture. For Kubernetes, use a non-root port.
+CMD ["nginx", "-g", "daemon off;"]

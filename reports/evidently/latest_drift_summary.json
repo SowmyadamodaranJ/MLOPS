@@ -1,0 +1,67 @@
+{
+  "data_drift": {
+    "detected": false,
+    "drift_score": 0.0,
+    "number_of_features": 4,
+    "number_of_drifted_features": 0,
+    "share_of_drifted_features": 0.0,
+    "dataset_drift": false,
+    "feature_metrics": {
+      "volt": {
+        "drift_detected": false,
+        "p_value": 0.3211,
+        "drift_score": 0.0959,
+        "ref_mean": 170.1,
+        "cur_mean": 168.69,
+        "stat_test": "Kolmogorov-Smirnov"
+      },
+      "rotate": {
+        "drift_detected": false,
+        "p_value": 0.7046,
+        "drift_score": 0.0665,
+        "ref_mean": 451.59,
+        "cur_mean": 454.84,
+        "stat_test": "Kolmogorov-Smirnov"
+      },
+      "pressure": {
+        "drift_detected": false,
+        "p_value": 0.6442,
+        "drift_score": 0.1001,
+        "ref_mean": 101.08,
+        "cur_mean": 100.07,
+        "stat_test": "Kolmogorov-Smirnov"
+      },
+      "vibration": {
+        "drift_detected": false,
+        "p_value": 0.0632,
+        "drift_score": 0.1597,
+        "ref_mean": 40.17,
+        "cur_mean": 39.38,
+        "stat_test": "Kolmogorov-Smirnov"
+      }
+    }
+  },
+  "target_drift": {
+    "detected": false,
+    "drift_score": 0.02,
+    "p_value": 0.88,
+    "stat_test": "Chi-Square"
+  },
+  "data_quality": {
+    "total_rows": 200,
+    "missing_values_count": 0,
+    "missing_values_share": 0.0,
+    "duplicate_rows_count": 0,
+    "empty_columns_count": 0
+  },
+  "model_drift": {
+    "detected": false,
+    "performance_degradation": false,
+    "confidence_degradation": false,
+    "distribution_change": false,
+    "training_vs_production_kl_divergence": 0.038,
+    "avg_confidence_drop": 0.012
+  },
+  "report_file_html": "drift_report_20260928_182411.html",
+  "timestamp": "2026-09-28T18:24:11.574339"
+}

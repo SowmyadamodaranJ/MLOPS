@@ -1,0 +1,98 @@
+# ==========================================
+# Multi-Stage Production Dockerfile for MLflow
+# Smart Factory Predictive Maintenance Registry
+# ==========================================
+#
+# Build:  docker build -f Dockerfile.mlflow -t pdm-mlflow:2.0.0 .
+# Run:    docker run -p 5001:5001 --env-file .env pdm-mlflow:2.0.0
+#
+# ── Stage 1: Builder (install MLflow & dependencies) ─────────
+FROM python:3.10-slim AS builder
+
+LABEL stage="builder"
+
+WORKDIR /build
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install MLflow into a user-local prefix for clean copy into runtime
+# Cloud storage SDKs are optional — set INSTALL_CLOUD_DEPS=true to include
+ARG INSTALL_CLOUD_DEPS=false
+RUN pip install --user --no-cache-dir \
+    "mlflow>=2.10.0,<3.0.0" \
+    psutil==5.9.8 \
+    && if [ "${INSTALL_CLOUD_DEPS}" = "true" ]; then \
+         pip install --user --no-cache-dir \
+           boto3 \
+           google-cloud-storage \
+           azure-storage-blob; \
+       fi
+
+# ── Stage 2: Minimal Production Runtime ─────────────────────
+FROM python:3.10-slim AS runtime
+
+# ── Image Labels ─────────────────────────────────────────────
+ARG VERSION=2.0.0
+ARG BUILD_DATE
+ARG GIT_SHA
+LABEL org.opencontainers.image.title="Smart Factory PDM MLflow Server" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_SHA}" \
+      org.opencontainers.image.description="MLflow tracking server and model registry for predictive maintenance"
+
+WORKDIR /mlflow
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/home/mlflow/.local/bin:${PATH}" \
+    # MLflow server configuration — all overridable via env
+    MLFLOW_HOST=0.0.0.0 \
+    MLFLOW_PORT=5001 \
+    MLFLOW_BACKEND_STORE_URI=sqlite:////mlflow/data/mlflow.db \
+    MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    # Create non-root user
+    && useradd --create-home --shell /bin/bash mlflow \
+    # Create persistent data directories
+    && mkdir -p /mlflow/data /mlflow/artifacts \
+    && chown -R mlflow:mlflow /mlflow
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /home/mlflow/.local
+RUN chown -R mlflow:mlflow /home/mlflow/.local
+
+# Copy existing MLflow database and artifacts (if present at build time)
+# These are primarily loaded from Docker volumes at runtime.
+# The COPY below acts as a fallback seed for a fresh deployment.
+COPY --chown=mlflow:mlflow mlflow.db  /mlflow/data/mlflow.db
+COPY --chown=mlflow:mlflow mlruns/    /mlflow/artifacts/
+
+USER mlflow
+
+EXPOSE 5001
+
+# ── Health Check ─────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=15s --start-period=20s --retries=5 \
+  CMD curl -sf http://localhost:5001/health || exit 1
+
+# ── Entrypoint ────────────────────────────────────────────────
+# All paths are configurable via environment variables set in docker-compose.
+CMD ["sh", "-c", \
+     "mlflow server \
+      --backend-store-uri ${MLFLOW_BACKEND_STORE_URI} \
+      --default-artifact-root ${MLFLOW_DEFAULT_ARTIFACT_ROOT} \
+      --host ${MLFLOW_HOST} \
+      --port ${MLFLOW_PORT} \
+      --serve-artifacts"]

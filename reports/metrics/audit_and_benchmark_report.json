@@ -1,0 +1,237 @@
+{
+  "timestamp": "2026-09-29T19:05:31Z",
+  "audit_findings": {
+    "duplicate_observations": {
+      "status": "CRITICAL_LEAKAGE_DETECTED",
+      "root_cause": "data_loader.py creates a 2-year synthetic dataset by copying the 1-year raw Azure PdM dataset twice (shifted by +3487 days and +3852 days, exactly 365 days apart). The 70/30 chronological split puts the first 511 days into train and the last 219 days into test. Because Year 2 is an exact clone of Year 1, 100% of the test set observations are exact clones of training set observations from 365 days prior. Models were evaluated on data they already memorized.",
+      "total_test_rows": 525700,
+      "total_train_rows": 1226500,
+      "duplicate_rate_in_test": 1.0
+    },
+    "class_imbalance": {
+      "total_authentic_observations": 876000,
+      "failure_count (1)": 17235,
+      "non_failure_count (0)": 858765,
+      "failure_rate": 0.0197,
+      "majority_class_baseline_accuracy": 0.9803,
+      "imbalance_ratio": "49:1",
+      "insight": "The dataset is severely imbalanced (1.97% positive, 98.03% negative). A naive majority-class classifier that predicts 0 for every instance achieves 98.03% accuracy! Therefore, accuracy alone is a misleading metric; F1, PR-AUC, and Recall are the true discriminators."
+    },
+    "maintenance_leakage": {
+      "total_failures": 761,
+      "total_maintenance_records": 3286,
+      "reactive_maintenance_matches": 743,
+      "percentage_failures_with_exact_maint_log": 97.63,
+      "maintenance_leakage_assessment": "In the raw dataset, when a failure occurs at timestamp T, a maintenance replacement record is logged at timestamp T. Because failure_label is 1 for timestamps [T-24h, T), during the 24 hours prior to failure, time_since_last_maint_compX is high and increasing, but resets to 0 at T. While time_since_last_maint does not use future timestamps, it is strongly predictive because failure probability monotonically increases with elapsed operating hours since component overhaul."
+    },
+    "rolling_features": {
+      "rolling_windows_hours": [
+        3,
+        24
+      ],
+      "alignment": "Right-aligned (trailing, lookback only, center=False)",
+      "min_periods": 1,
+      "boundary_leakage_in_duplicated_data": "Within a single continuous time series, pandas rolling(24) only looks backward. However, when Year 1 and Year 2 were concatenated directly, the transition boundary between Year 1 and Year 2 bled the rolling statistics of the end of Year 1 into the start of Year 2. On authentic single-year data, rolling features have zero lookahead temporal leakage."
+    },
+    "validation_strategy": {
+      "total_machines": 100,
+      "chronological_split_scope": "Chronological split (e.g. 70% train time, 30% test time across all machines) tests temporal forecasting on SEEN machines. All 100 machines exist in both train and test partitions. Models can leverage machine-specific characteristics (e.g. machine model, age, and individual baseline sensor operating levels).",
+      "group_aware_split_scope": "Machine-Aware / Group-Aware split (e.g. GroupShuffleSplit or GroupKFold allocating 70 machines to train, 30 machines to test) tests CROSS-MACHINE GENERALIZATION to brand new or UNSEEN machines. This evaluates whether the model learned general physics of component degradation or simply memorized specific machines.",
+      "recommendation": "Both protocols must be evaluated: (1) Chronological validation evaluates operational deployment on monitored plant equipment over time. (2) Group-Aware validation evaluates fleet scalability to newly commissioned equipment."
+    },
+    "inference_feature_availability": {
+      "required_contract_features": 31,
+      "feature_list": [
+        "total_errors_rolling24h",
+        "volt_rolling24h_mean",
+        "rotate_rolling24h_mean",
+        "rotate_rolling24h_min",
+        "vibration_rolling24h_mean",
+        "rotate_rolling24h_max",
+        "time_since_last_maint_comp2",
+        "vibration_rolling24h_min",
+        "volt_rolling24h_min",
+        "time_since_last_maint_comp3",
+        "pressure_rolling24h_min",
+        "vibration_rolling3h_mean",
+        "time_since_last_maint_comp4",
+        "time_since_last_maint_comp1",
+        "vibration_rolling24h_max",
+        "pressure_rolling24h_mean",
+        "rotate_rolling3h_mean",
+        "volt_rolling3h_mean",
+        "volt_rolling24h_max",
+        "rotate_rolling3h_max",
+        "pressure_rolling3h_mean",
+        "pressure_rolling24h_max",
+        "pressure_rolling3h_max",
+        "vibration_rolling3h_min",
+        "pressure_rolling3h_min",
+        "pressure_lag3h",
+        "vibration_lag3h",
+        "rotate_rolling3h_min",
+        "volt_rolling3h_min",
+        "vibration_lag24h",
+        "age"
+      ],
+      "telemetry_inputs": [
+        "volt",
+        "rotate",
+        "pressure",
+        "vibration"
+      ],
+      "static_metadata": [
+        "age"
+      ],
+      "cached_operational_state": [
+        "rolling sensor statistics (mean, std, min, max over 3h and 24h)",
+        "lag features (3h, 24h)",
+        "total_errors_rolling24h",
+        "time_since_last_maint_comp1..4"
+      ],
+      "backend_implementation_status": "backend/services/feature_service.py maintains an in-memory and disk mini-cache of latest machine features. At prediction time, user slider telemetry overrides volt/rotate/pressure/vibration and recomputes ratio features, while historical rolling windows, error counts, and maintenance counters are retrieved from the machine state. All 31 features are available for inference."
+    }
+  },
+  "controlled_benchmark": {
+    "chronological_validation": {
+      "Logistic Regression": {
+        "model": "Logistic Regression",
+        "accuracy": 0.9845,
+        "precision": 0.5367,
+        "recall": 0.9862,
+        "f1_score": 0.6951,
+        "roc_auc": 0.9932,
+        "pr_auc": 0.8226,
+        "confusion_matrix": {
+          "tp": 4630,
+          "fp": 3997,
+          "fn": 65,
+          "tn": 254108
+        },
+        "train_time_sec": 2.46,
+        "infer_time_sec": 0.21
+      },
+      "Decision Tree": {
+        "model": "Decision Tree",
+        "accuracy": 0.9933,
+        "precision": 0.8059,
+        "recall": 0.8215,
+        "f1_score": 0.8136,
+        "roc_auc": 0.8368,
+        "pr_auc": 0.7601,
+        "confusion_matrix": {
+          "tp": 3857,
+          "fp": 929,
+          "fn": 838,
+          "tn": 257176
+        },
+        "train_time_sec": 50.57,
+        "infer_time_sec": 0.31
+      },
+      "Random Forest": {
+        "model": "Random Forest",
+        "accuracy": 0.9956,
+        "precision": 0.9378,
+        "recall": 0.8066,
+        "f1_score": 0.8673,
+        "roc_auc": 0.9943,
+        "pr_auc": 0.9542,
+        "confusion_matrix": {
+          "tp": 3787,
+          "fp": 251,
+          "fn": 908,
+          "tn": 257854
+        },
+        "train_time_sec": 84.48,
+        "infer_time_sec": 0.92
+      },
+      "XGBoost": {
+        "model": "XGBoost",
+        "accuracy": 0.998,
+        "precision": 0.9343,
+        "recall": 0.954,
+        "f1_score": 0.944,
+        "roc_auc": 0.9953,
+        "pr_auc": 0.9742,
+        "confusion_matrix": {
+          "tp": 4479,
+          "fp": 315,
+          "fn": 216,
+          "tn": 257790
+        },
+        "train_time_sec": 12.98,
+        "infer_time_sec": 0.5
+      }
+    },
+    "group_aware_validation": {
+      "Logistic Regression": {
+        "model": "Logistic Regression",
+        "accuracy": 0.9766,
+        "precision": 0.4488,
+        "recall": 0.9908,
+        "f1_score": 0.6178,
+        "roc_auc": 0.9953,
+        "pr_auc": 0.8159,
+        "confusion_matrix": {
+          "tp": 4973,
+          "fp": 6108,
+          "fn": 46,
+          "tn": 251673
+        },
+        "train_time_sec": 4.17,
+        "infer_time_sec": 0.4
+      },
+      "Decision Tree": {
+        "model": "Decision Tree",
+        "accuracy": 0.9925,
+        "precision": 0.751,
+        "recall": 0.9117,
+        "f1_score": 0.8236,
+        "roc_auc": 0.9192,
+        "pr_auc": 0.8509,
+        "confusion_matrix": {
+          "tp": 4576,
+          "fp": 1517,
+          "fn": 443,
+          "tn": 256264
+        },
+        "train_time_sec": 51.39,
+        "infer_time_sec": 0.26
+      },
+      "Random Forest": {
+        "model": "Random Forest",
+        "accuracy": 0.9976,
+        "precision": 0.9571,
+        "recall": 0.9159,
+        "f1_score": 0.9361,
+        "roc_auc": 0.9988,
+        "pr_auc": 0.98,
+        "confusion_matrix": {
+          "tp": 4597,
+          "fp": 206,
+          "fn": 422,
+          "tn": 257575
+        },
+        "train_time_sec": 85.01,
+        "infer_time_sec": 0.96
+      },
+      "XGBoost": {
+        "model": "XGBoost",
+        "accuracy": 0.9982,
+        "precision": 0.945,
+        "recall": 0.9645,
+        "f1_score": 0.9546,
+        "roc_auc": 0.9989,
+        "pr_auc": 0.9882,
+        "confusion_matrix": {
+          "tp": 4841,
+          "fp": 282,
+          "fn": 178,
+          "tn": 257499
+        },
+        "train_time_sec": 9.65,
+        "infer_time_sec": 0.54
+      }
+    }
+  }
+}

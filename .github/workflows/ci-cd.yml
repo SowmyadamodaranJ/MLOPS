@@ -1,0 +1,387 @@
+name: Smart Factory PDM — CI/CD Pipeline
+
+# ── Trigger Rules ─────────────────────────────────────────────
+on:
+  push:
+    branches: [main, master, develop]
+    tags:
+      - 'v*.*.*'        # Triggers release job on semantic version tags
+  pull_request:
+    branches: [main, master]
+
+# Cancel in-progress runs for the same branch/PR to save CI minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ── Global Environment ────────────────────────────────────────
+env:
+  REGISTRY: ghcr.io
+  # Image names follow ghcr.io/<owner>/<repo>/<service> convention
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/smart-factory-pdm
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 1: Backend — Lint, Type Check, Unit Tests
+  # ════════════════════════════════════════════════════════════
+  backend-quality:
+    name: 🐍 Backend Quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install \
+            pytest==7.4.4 \
+            pytest-cov==4.1.0 \
+            flake8==7.0.0 \
+            gunicorn==21.2.0 \
+            psutil==5.9.8 \
+            evidently==0.4.30
+
+      - name: Flake8 — Syntax & Critical Errors
+        run: |
+          # Fail on syntax errors, undefined names, and F-string issues
+          flake8 backend src \
+            --count \
+            --select=E9,F63,F7,F82 \
+            --show-source \
+            --statistics
+
+      - name: Flake8 — Full Code Quality Report
+        run: |
+          # Report style warnings (do not fail the build)
+          flake8 backend src \
+            --count \
+            --max-line-length=120 \
+            --ignore=E501,W503 \
+            --statistics \
+            --exit-zero
+
+      - name: Run backend smoke test (app factory + health endpoint)
+        run: |
+          python -c "
+          from backend.app import create_app
+          app = create_app()
+          client = app.test_client()
+          res = client.get('/health')
+          assert res.status_code == 200, f'Expected 200, got {res.status_code}'
+          data = res.get_json()
+          assert data['data']['status'] == 'healthy', f'Unexpected status: {data}'
+          print('Health endpoint OK:', data['data'])
+          "
+
+      - name: Run pytest suite (if tests directory exists)
+        run: |
+          if [ -d "tests" ]; then
+            pytest tests/ \
+              --cov=backend \
+              --cov=src \
+              --cov-report=xml:coverage.xml \
+              --cov-report=term-missing \
+              -v
+          else
+            echo "No tests/ directory found — skipping pytest."
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-report
+          path: coverage.xml
+          retention-days: 7
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 2: Frontend — TypeScript Check & Production Build
+  # ════════════════════════════════════════════════════════════
+  frontend-quality:
+    name: ⚛️ Frontend Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Node dependencies
+        working-directory: frontend
+        run: npm ci --prefer-offline
+
+      - name: TypeScript type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Production build (Vite)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload frontend dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 3: Security Scanning
+  # ════════════════════════════════════════════════════════════
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit Python dependencies (CVE check)
+        run: |
+          pip-audit -r requirements.txt \
+            --format=json \
+            --output=python-audit.json \
+            --ignore-vuln PYSEC-2022-43012 \
+            || true
+          pip-audit -r requirements.txt || true
+        continue-on-error: true   # Advisory — does not block the pipeline
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Audit npm dependencies (CVE check)
+        working-directory: frontend
+        run: |
+          npm ci --prefer-offline
+          npm audit --audit-level=high || true
+        continue-on-error: true   # Advisory — does not block the pipeline
+
+      - name: Upload security audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-results
+          path: python-audit.json
+          retention-days: 30
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 4: Build & Push Docker Images
+  # ════════════════════════════════════════════════════════════
+  docker-build-push:
+    name: 🐳 Build & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [backend-quality, frontend-quality]
+    permissions:
+      contents: read
+      packages: write     # Required for ghcr.io push
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read project version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Project version: ${VERSION}"
+
+      - name: Set up QEMU (for multi-arch builds)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Compute image tags ──────────────────────────────────
+      - name: Compute image metadata — Backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-backend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
+      - name: Compute image metadata — Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-frontend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
+      - name: Compute image metadata — MLflow
+        id: meta-mlflow
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-mlflow
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
+      # ── Build & Push ────────────────────────────────────────
+      - name: Build & Push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ fromJSON(steps.meta-backend.outputs.json).labels['org.opencontainers.image.created'] }}
+            GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & Push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ fromJSON(steps.meta-frontend.outputs.json).labels['org.opencontainers.image.created'] }}
+            GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & Push MLflow image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.mlflow
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-mlflow.outputs.tags }}
+          labels: ${{ steps.meta-mlflow.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ fromJSON(steps.meta-mlflow.outputs.json).labels['org.opencontainers.image.created'] }}
+            GIT_SHA=${{ github.sha }}
+            INSTALL_CLOUD_DEPS=false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 5: GitHub Release (triggered only on version tags)
+  # ════════════════════════════════════════════════════════════
+  release:
+    name: 🚀 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [docker-build-push, security-scan]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # Full history for changelog generation
+
+      - name: Read project version
+        id: version
+        run: echo "version=$(cat VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Download frontend dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: release-dist/
+
+      - name: Create release archive
+        run: |
+          tar -czf "smart-factory-pdm-${{ steps.version.outputs.version }}-dist.tar.gz" \
+            -C release-dist .
+
+      - name: Generate changelog from git log
+        id: changelog
+        run: |
+          # Get commits since last tag
+          PREV_TAG=$(git describe --abbrev=0 --tags HEAD~1 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+          else
+            LOG=$(git log --pretty=format:"- %s (%h)" --no-merges -20)
+          fi
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$LOG" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Smart Factory PDM v${{ steps.version.outputs.version }}"
+          body: |
+            ## Smart Factory Predictive Maintenance — v${{ steps.version.outputs.version }}
+
+            ### Docker Images
+            Pull the production images from GitHub Container Registry:
+            ```bash
+            docker pull ghcr.io/${{ github.repository_owner }}/smart-factory-pdm-backend:${{ steps.version.outputs.version }}
+            docker pull ghcr.io/${{ github.repository_owner }}/smart-factory-pdm-frontend:${{ steps.version.outputs.version }}
+            docker pull ghcr.io/${{ github.repository_owner }}/smart-factory-pdm-mlflow:${{ steps.version.outputs.version }}
+            ```
+
+            ### Deploy
+            ```bash
+            APP_VERSION=${{ steps.version.outputs.version }} docker-compose -f docker-compose.yml up -d
+            ```
+
+            ### Changes
+            ${{ steps.changelog.outputs.changelog }}
+          files: |
+            smart-factory-pdm-${{ steps.version.outputs.version }}-dist.tar.gz
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}

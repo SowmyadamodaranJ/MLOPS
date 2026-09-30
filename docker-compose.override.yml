@@ -1,0 +1,61 @@
+# ============================================================
+# docker-compose.override.yml — Development Overrides
+# Smart Factory Predictive Maintenance Platform
+#
+# This file is automatically merged with docker-compose.yml
+# when you run `docker-compose up` in development.
+#
+# For production, explicitly exclude this file:
+#   docker-compose -f docker-compose.yml up -d
+#
+# ============================================================
+
+version: '3.9'
+
+services:
+
+  # ── Backend: Hot-Reload Development Mode ──────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    env_file:
+      - .env.development
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "1"
+      # Flask dev server instead of Gunicorn for hot reload
+    # Override the CMD to use Flask dev server with auto-reload
+    command: ["python", "-m", "flask", "--app", "backend.app:create_app", "run",
+              "--host", "0.0.0.0", "--port", "5000", "--reload"]
+    volumes:
+      # Mount source for live code changes (hot reload)
+      - ./backend:/app/backend
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - pdm_data:/app/data
+      - pdm_logs:/app/logs
+    ports:
+      - "5000:5000"
+      # Expose debugger port for remote debugging (e.g., VS Code)
+      - "5678:5678"
+
+  # ── Frontend: Vite Dev Server ──────────────────────────────
+  # In dev, run `npm run dev` locally instead of using Docker
+  # for the best hot-module-replacement (HMR) experience.
+  # The frontend service is kept here for parity, but you can
+  # comment it out and run `cd frontend && npm run dev` instead.
+  frontend:
+    env_file:
+      - .env.development
+    ports:
+      - "80:80"
+
+  # ── MLflow: Dev Configuration ─────────────────────────────
+  mlflow:
+    env_file:
+      - .env.development
+    ports:
+      - "5001:5001"

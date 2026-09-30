@@ -1,0 +1,146 @@
+model,method,feature,importance,rank,std
+Decision Tree,builtin,total_errors_rolling24h,0.7228380493094463,1,
+Decision Tree,builtin,month_cos,0.04982611681339626,2,
+Decision Tree,builtin,pressure_rolling24h_mean,0.02999118537792797,3,
+Decision Tree,builtin,time_since_last_maint_comp4,0.029778825265876403,4,
+Decision Tree,builtin,time_since_last_maint_comp2,0.02919595959617988,5,
+Decision Tree,builtin,volt_rolling24h_mean,0.02663833067213223,6,
+Decision Tree,builtin,time_since_last_maint_comp3,0.020541853906532563,7,
+Decision Tree,builtin,time_since_last_maint_comp1,0.01779721584165948,8,
+Decision Tree,builtin,rotate_rolling24h_mean,0.013761685113840457,9,
+Decision Tree,builtin,vibration_rolling24h_mean,0.011872296274574954,10,
+Decision Tree,builtin,vibration_rolling24h_min,0.00961086212809751,11,
+Decision Tree,builtin,pressure_rolling24h_max,0.007023267791235676,12,
+Decision Tree,builtin,age,0.006391980182764774,13,
+Decision Tree,builtin,vibration_rolling24h_max,0.004668094432490998,14,
+Decision Tree,builtin,rotate_rolling24h_max,0.004566541240852621,15,
+Decision Tree,builtin,pressure_rolling24h_min,0.0033608551561474013,16,
+Decision Tree,builtin,volt_rolling24h_max,0.003194737729134466,17,
+Decision Tree,builtin,pressure_rolling3h_mean,0.0031703349041123296,18,
+Decision Tree,builtin,rotate_rolling24h_min,0.0024732057983532538,19,
+Decision Tree,builtin,volt_rolling24h_min,0.0016696974864173284,20,
+Decision Tree,builtin,vibration_rolling3h_min,0.0006013446099909042,21,
+Decision Tree,builtin,rotate_rolling3h_min,0.00039036599586338546,22,
+Decision Tree,builtin,pressure_lag24h,0.00027635102258459775,23,
+Decision Tree,builtin,volt_rolling3h_min,0.0002142907692849729,24,
+Decision Tree,builtin,rotate_rolling3h_mean,4.4519232083725676e-05,25,
+Decision Tree,builtin,pressure_rolling3h_min,4.3465809633236334e-05,26,
+Decision Tree,builtin,rotate_rolling3h_max,2.8532454127848767e-05,27,
+Decision Tree,builtin,pressure,2.1776286346088913e-05,28,
+Decision Tree,builtin,vibration_rolling3h_mean,8.258798912368323e-06,29,
+Random Forest,builtin,total_errors_rolling24h,0.3837268073883653,1,
+Random Forest,builtin,volt_rolling24h_mean,0.07972374460728351,2,
+Random Forest,builtin,rotate_rolling24h_mean,0.051042437856648123,3,
+Random Forest,builtin,rotate_rolling24h_max,0.050249755382355585,4,
+Random Forest,builtin,vibration_rolling24h_mean,0.04926165770307404,5,
+Random Forest,builtin,volt_rolling24h_min,0.03404138319693166,6,
+Random Forest,builtin,vibration_rolling24h_min,0.03072329449728028,7,
+Random Forest,builtin,time_since_last_maint_comp4,0.030602417938875047,8,
+Random Forest,builtin,time_since_last_maint_comp2,0.029372086436208256,9,
+Random Forest,builtin,pressure_rolling24h_min,0.028424967023742895,10,
+Random Forest,builtin,rotate_rolling24h_min,0.023593715061837658,11,
+Random Forest,builtin,pressure_rolling24h_mean,0.02274083417300775,12,
+Random Forest,builtin,time_since_last_maint_comp1,0.021947671835496063,13,
+Random Forest,builtin,time_since_last_maint_comp3,0.020690167828353895,14,
+Random Forest,builtin,volt_rolling24h_max,0.018748867791240395,15,
+Random Forest,builtin,pressure_rolling3h_mean,0.018348206809304827,16,
+Random Forest,builtin,rotate_rolling3h_mean,0.014877240774091811,17,
+Random Forest,builtin,vibration_rolling24h_max,0.014799466856025371,18,
+Random Forest,builtin,vibration_rolling3h_mean,0.014760588140560572,19,
+Random Forest,builtin,pressure_rolling24h_max,0.013442434070046177,20,
+Random Forest,builtin,month_cos,0.009915173242394904,21,
+Random Forest,builtin,pressure_rolling3h_min,0.007895453255802688,22,
+Random Forest,builtin,rotate_rolling3h_max,0.0073751069326403575,23,
+Random Forest,builtin,age,0.006741320536329253,24,
+Random Forest,builtin,vibration_rolling3h_min,0.004441656065580787,25,
+Random Forest,builtin,pressure_lag24h,0.0038689998612814603,26,
+Random Forest,builtin,volt_rolling3h_min,0.0036026390577067104,27,
+Random Forest,builtin,rotate_rolling3h_min,0.003513619739247939,28,
+Random Forest,builtin,pressure,0.0015282859382868075,29,
+XGBoost,builtin,total_errors_rolling24h,0.7238075733184814,1,
+XGBoost,builtin,rotate_rolling24h_mean,0.040486644953489304,2,
+XGBoost,builtin,volt_rolling24h_mean,0.03461477532982826,3,
+XGBoost,builtin,pressure_rolling24h_min,0.028971822932362556,4,
+XGBoost,builtin,vibration_rolling24h_max,0.02320687845349312,5,
+XGBoost,builtin,pressure_rolling24h_mean,0.01827096752822399,6,
+XGBoost,builtin,vibration_rolling24h_mean,0.016757939010858536,7,
+XGBoost,builtin,time_since_last_maint_comp4,0.015246061608195305,8,
+XGBoost,builtin,time_since_last_maint_comp2,0.01359769981354475,9,
+XGBoost,builtin,time_since_last_maint_comp3,0.012062259949743748,10,
+XGBoost,builtin,month_cos,0.010276705026626587,11,
+XGBoost,builtin,vibration_rolling24h_min,0.009521297179162502,12,
+XGBoost,builtin,time_since_last_maint_comp1,0.008539361879229546,13,
+XGBoost,builtin,vibration_rolling3h_min,0.007410985417664051,14,
+XGBoost,builtin,pressure_rolling3h_mean,0.006688971072435379,15,
+XGBoost,builtin,age,0.005460973363369703,16,
+XGBoost,builtin,pressure_rolling24h_max,0.004440539516508579,17,
+XGBoost,builtin,pressure_rolling3h_min,0.0030504066962748766,18,
+XGBoost,builtin,rotate_rolling24h_max,0.002937822602689266,19,
+XGBoost,builtin,rotate_rolling24h_min,0.002779960399493575,20,
+XGBoost,builtin,volt_rolling24h_min,0.0025706158485263586,21,
+XGBoost,builtin,volt_rolling24h_max,0.002550828503444791,22,
+XGBoost,builtin,vibration_rolling3h_mean,0.0017735690344125032,23,
+XGBoost,builtin,rotate_rolling3h_mean,0.0012028717901557684,24,
+XGBoost,builtin,pressure_lag24h,0.001171250594779849,25,
+XGBoost,builtin,volt_rolling3h_min,0.0011412054300308228,26,
+XGBoost,builtin,rotate_rolling3h_min,0.0009564614738337696,27,
+XGBoost,builtin,rotate_rolling3h_max,0.0003459104336798191,28,
+XGBoost,builtin,pressure,0.00015760499809402972,29,
+XGBoost,permutation,total_errors_rolling24h,0.019159999999999976,1,0.0005986651818838448
+XGBoost,permutation,rotate_rolling24h_mean,0.006800000000000028,2,0.00012649110640672122
+XGBoost,permutation,volt_rolling24h_mean,0.005719999999999992,3,0.00041182520563947994
+XGBoost,permutation,time_since_last_maint_comp1,0.0007600000000000274,4,0.00014966629547094116
+XGBoost,permutation,time_since_last_maint_comp3,0.0006800000000000139,5,0.00032496153618543543
+XGBoost,permutation,age,0.0005200000000000094,6,0.00041182520563947994
+XGBoost,permutation,time_since_last_maint_comp4,0.0005200000000000094,7,0.0002993325909419298
+XGBoost,permutation,time_since_last_maint_comp2,0.00023999999999997358,8,0.00023323807579378632
+XGBoost,permutation,pressure,0.00019999999999997797,9,0.0
+XGBoost,permutation,vibration_rolling24h_min,0.00011999999999998679,10,0.00020396078054368892
+XGBoost,permutation,rotate_rolling3h_mean,0.0,11,0.0
+XGBoost,permutation,pressure_rolling3h_min,0.0,12,0.0
+XGBoost,permutation,volt_rolling3h_min,0.0,13,0.0
+XGBoost,permutation,vibration_rolling3h_min,0.0,14,0.0
+XGBoost,permutation,rotate_rolling3h_max,0.0,15,0.0
+XGBoost,permutation,rotate_rolling3h_min,-3.999999999999559e-05,16,7.999999999999118e-05
+XGBoost,permutation,pressure_lag24h,-3.999999999999559e-05,17,7.999999999999118e-05
+XGBoost,permutation,volt_rolling24h_max,-3.999999999999559e-05,18,7.999999999999118e-05
+XGBoost,permutation,pressure_rolling24h_min,-3.999999999999559e-05,19,0.00019595917942263265
+XGBoost,permutation,vibration_rolling3h_mean,-7.999999999999118e-05,20,9.797958971131634e-05
+XGBoost,permutation,month_cos,-0.00015999999999998237,21,7.99999999999912e-05
+XGBoost,permutation,rotate_rolling24h_min,-0.0001600000000000046,22,0.0002653299832284396
+XGBoost,permutation,pressure_rolling24h_mean,-0.00019999999999997797,23,0.00012649110640672122
+XGBoost,permutation,pressure_rolling3h_mean,-0.00019999999999997797,24,0.0
+XGBoost,permutation,rotate_rolling24h_max,-0.00023999999999997358,25,7.99999999999912e-05
+XGBoost,permutation,vibration_rolling24h_mean,-0.00035999999999998257,26,0.00014966629547097677
+XGBoost,permutation,volt_rolling24h_min,-0.00039999999999995595,27,0.0
+XGBoost,permutation,vibration_rolling24h_max,-0.00039999999999997817,28,0.00012649110640675635
+XGBoost,permutation,pressure_rolling24h_max,-0.00047999999999999156,29,9.797958971137072e-05
+XGBoost,shap,total_errors_rolling24h,2.7794029712677,1,
+XGBoost,shap,month_cos,1.3416389226913452,2,
+XGBoost,shap,volt_rolling24h_mean,0.7003957033157349,3,
+XGBoost,shap,rotate_rolling24h_mean,0.3793259263038635,4,
+XGBoost,shap,time_since_last_maint_comp3,0.36750930547714233,5,
+XGBoost,shap,time_since_last_maint_comp4,0.35773855447769165,6,
+XGBoost,shap,time_since_last_maint_comp2,0.3451416790485382,7,
+XGBoost,shap,time_since_last_maint_comp1,0.2632810175418854,8,
+XGBoost,shap,vibration_rolling24h_min,0.24820393323898315,9,
+XGBoost,shap,age,0.2449665516614914,10,
+XGBoost,shap,vibration_rolling24h_mean,0.23132380843162537,11,
+XGBoost,shap,pressure_rolling24h_mean,0.19579154253005981,12,
+XGBoost,shap,pressure_rolling24h_min,0.18863385915756226,13,
+XGBoost,shap,pressure_rolling24h_max,0.1748446822166443,14,
+XGBoost,shap,volt_rolling24h_min,0.14156532287597656,15,
+XGBoost,shap,pressure_rolling3h_mean,0.1348176747560501,16,
+XGBoost,shap,rotate_rolling24h_min,0.10615696012973785,17,
+XGBoost,shap,vibration_rolling24h_max,0.09685264527797699,18,
+XGBoost,shap,pressure_lag24h,0.07900338619947433,19,
+XGBoost,shap,rotate_rolling24h_max,0.07897471636533737,20,
+XGBoost,shap,volt_rolling24h_max,0.06688223779201508,21,
+XGBoost,shap,rotate_rolling3h_mean,0.05211202800273895,22,
+XGBoost,shap,vibration_rolling3h_mean,0.05145321786403656,23,
+XGBoost,shap,volt_rolling3h_min,0.050791457295417786,24,
+XGBoost,shap,pressure_rolling3h_min,0.03331579267978668,25,
+XGBoost,shap,rotate_rolling3h_min,0.026425868272781372,26,
+XGBoost,shap,vibration_rolling3h_min,0.0207060519605875,27,
+XGBoost,shap,pressure,0.012628339231014252,28,
+XGBoost,shap,rotate_rolling3h_max,0.00432127621024847,29,
