@@ -23,6 +23,7 @@ from backend.services.drift_service import DriftService
 from backend.services.alerts_service import AlertsService
 from backend.services.mlflow_service import MLflowService
 from backend.services.decision_engine_service import DecisionEngineService
+from backend.services.experiment_service import ExperimentService
 from backend.utils.logger import get_logger
 from backend.utils.validators import validate_prediction_request, validate_machine_id
 
@@ -41,6 +42,7 @@ drift_service      = DriftService()
 alerts_service     = AlertsService()
 mlflow_service     = MLflowService()
 decision_service   = DecisionEngineService()
+experiment_service = ExperimentService()
 
 
 # ─── Response helpers ─────────────────────────────────────────────────────────
@@ -121,28 +123,35 @@ def get_dashboard():
     Returns plant-level KPIs and model metadata.
     """
     try:
-        machines = feature_service.get_machines_list()
-        total_m  = len(machines)
+        # Use real fleet decision queue for genuine machine health counts
+        queue = decision_service.get_health_queue()
+        if queue:
+            total_m  = len(queue)
+            critical = sum(1 for m in queue if m["risk_tier"] == "CRITICAL")
+            warning  = sum(1 for m in queue if m["risk_tier"] == "WARNING")
+            healthy  = sum(1 for m in queue if m["risk_tier"] == "MONITOR")
+        else:
+            machines = feature_service.get_machines_list()
+            total_m  = len(machines)
+            healthy  = sum(1 for m in machines if m["status"] == "Healthy")
+            warning  = sum(1 for m in machines if m["status"] == "Warning")
+            critical = sum(1 for m in machines if m["status"] == "Critical")
 
-        healthy  = sum(1 for m in machines if m["status"] == "Healthy")
-        warning  = sum(1 for m in machines if m["status"] == "Warning")
-        critical = sum(1 for m in machines if m["status"] == "Critical")
-
-        # Read F1 from the model manifest (authoritative source of truth)
+        # Read F1 from the model manifest (authoritative source of truth, e.g. 0.8250)
         manifest_f1 = model_service.metadata.get("selected_metric_value")
-        f1_score = manifest_f1 if manifest_f1 is not None else 0.9931
+        f1_score = manifest_f1 if manifest_f1 is not None else 0.8250
         kpis     = db_service.get_kpis()
 
         return jsonify(ok(
             data={
                 "kpis": {
-                    "total_machines":         total_m if total_m > 0 else 100,
-                    "healthy_machines":       healthy if total_m > 0 else 82,
-                    "warning_machines":       warning if total_m > 0 else 12,
-                    "critical_machines":      critical if total_m > 0 else 6,
-                    "model_f1_score":         f1_score,
-                    "downtime_prevented_hrs": 450 + (kpis["failures_logged"] * 24),
-                    "cost_saved_usd":         125000 + (kpis["failures_logged"] * 8500),
+                    "total_machines":           total_m,
+                    "healthy_machines":         healthy,
+                    "warning_machines":         warning,
+                    "critical_machines":        critical,
+                    "model_f1_score":           f1_score,
+                    "downtime_prevented_hrs":   450 + (kpis["failures_logged"] * 24),
+                    "cost_saved_usd":           125000 + (kpis["failures_logged"] * 8500),
                     "total_predictions_logged": kpis["total_predictions"],
                 },
                 "current_dataset": "Microsoft Azure Predictive Maintenance Dataset",
@@ -174,6 +183,7 @@ def get_machines():
 
 
 @api_bp.route("/machines/<int:machine_id>/features", methods=["GET"])
+@api_bp.route("/machine/<int:machine_id>/features", methods=["GET"])
 def get_machine_features(machine_id: int):
     """GET /machines/<id>/features - Machine telemetry parameters."""
     try:
@@ -282,7 +292,7 @@ def predict():
 
     overrides = {}
     for k, v in data.items():
-        if k in ("machineID", "datetime"):
+        if k in ("machineID", "datetime", "model"):
             continue
         try:
             overrides[k] = float(v)
@@ -382,7 +392,7 @@ def explain():
 
     overrides = {}
     for k, v in data.items():
-        if k in ("machineID", "datetime"):
+        if k in ("machineID", "datetime", "model"):
             continue
         try:
             overrides[k] = float(v)
@@ -655,6 +665,7 @@ def get_mlflow_dashboard():
 # ─── 14. GET /machines/<machine_id>/decision ─────────────────────────────────
 
 @api_bp.route("/machines/<int:machine_id>/decision", methods=["GET"])
+@api_bp.route("/machine/<int:machine_id>/decision", methods=["GET"])
 @api_bp.route("/decision/<int:machine_id>", methods=["GET"])
 def get_machine_decision(machine_id: int):
     """
@@ -743,4 +754,38 @@ def get_health_queue():
         logger.error(f"Error generating health queue: {exc}")
         db_service.log_exception("/machines/health-queue", str(exc), traceback.format_exc())
         return jsonify(err(str(exc), "HEALTH_QUEUE_ERROR")), 500
+
+
+# ─── 16. ML Experiment & Model Comparison Routes ─────────────────────────────
+
+@api_bp.route("/experiment/run", methods=["POST"])
+def run_experiment():
+    """POST /api/experiment/run - Trigger live 4-model training and evaluation."""
+    res = experiment_service.start_experiment()
+    status_code = 200 if res["success"] else 409
+    return jsonify(ok(data=res["status"], message=res["message"])), status_code
+
+
+@api_bp.route("/experiment/status", methods=["GET"])
+def get_experiment_status():
+    """GET /api/experiment/status - Poll status and progress of live experiment."""
+    status_data = experiment_service.get_status()
+    return jsonify(ok(data=status_data, message="Experiment status retrieved."))
+
+
+@api_bp.route("/experiment/history", methods=["GET"])
+def get_experiment_history():
+    """GET /api/experiment/history - Retrieve historical 4-model comparison runs."""
+    history = experiment_service.get_history()
+    return jsonify(ok(data={"experiments": history, "total": len(history)}, message="Experiment history retrieved."))
+
+
+@api_bp.route("/experiment/promote", methods=["POST"])
+def promote_champion():
+    """POST /api/experiment/promote - Register/promote champion candidate to MLflow Registry."""
+    payload = request.get_json() or {}
+    model_name = payload.get("model_name", "XGBoost")
+    res = experiment_service.promote_champion(model_name)
+    return jsonify(ok(data=res, message=res["message"]))
+
 

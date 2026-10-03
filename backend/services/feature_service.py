@@ -101,20 +101,39 @@ class FeatureService:
             logger.error(f"Error loading machines CSV: {e}")
 
     def get_machines_list(self):
-        """Return the list of machines with their models, ages, and healthy status."""
+        """Return the list of machines with their models, ages, and real predicted health status."""
         if self.machines_df is None:
             return []
             
         machines = self.machines_df.copy()
         
-        # Mock status logic matching routes.py (age > 18 Critical, age > 12 Warning, else Healthy)
-        machines["status"] = machines["age"].apply(
-            lambda x: "Critical" if x > 18 else ("Warning" if x > 12 else "Healthy")
-        )
+        # Derive machine status from real decision engine risk tiers
+        try:
+            from backend.services.decision_engine_service import DecisionEngineService
+            de = DecisionEngineService()
+            queue = de.get_health_queue()
+            if queue:
+                tier_map = {m["machine_id"]: m["risk_tier"] for m in queue}
+                status_map = {
+                    "CRITICAL": "Critical",
+                    "WARNING":  "Warning",
+                    "MONITOR":  "Healthy",
+                }
+                machines["status"] = machines["machineID"].map(
+                    lambda m_id: status_map.get(tier_map.get(m_id, "MONITOR"), "Healthy")
+                )
+            else:
+                machines["status"] = "Healthy"
+        except Exception as e:
+            logger.debug(f"Falling back to default Healthy status for machines: {e}")
+            machines["status"] = "Healthy"
+
         return machines.to_dict(orient="records")
 
     def get_latest_features(self, machine_id: int) -> Optional[Dict[str, Any]]:
         """Return the latest cached feature dict for a specific machine ID."""
+        if not self.features_cache and MINI_CACHE_PATH.exists():
+            self._load_features_cache()
         return self.features_cache.get(machine_id)
 
     def prepare_inference_features(self, machine_id: int, overrides: Dict[str, float]) -> Optional[pd.DataFrame]:

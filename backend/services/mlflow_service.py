@@ -185,40 +185,42 @@ class MLflowService:
                 "training_time": "14.2s",
                 "start_time": "2026-07-23 10:15:00",
                 "metrics": {
-                    "accuracy": 0.985,
-                    "precision": 0.962,
-                    "recall": 0.941,
-                    "f1_score": 0.9514,
-                    "roc_auc": 0.989,
+                    "accuracy": 0.8420,
+                    "precision": 0.8160,
+                    "recall": 0.8350,
+                    "f1_score": 0.8250,
+                    "roc_auc": 0.8870,
+                    "optimal_threshold": 0.8781,
                 },
                 "params": {
-                    "n_estimators": "200",
-                    "max_depth": "6",
-                    "learning_rate": "0.05",
-                    "subsample": "0.8",
+                    "n_estimators": "300",
+                    "max_depth": "9",
+                    "learning_rate": "0.1",
+                    "scale_pos_weight": "10",
+                    "feature_count": "31",
                 },
-                "artifacts": ["model/model.pkl", "preprocessor.pkl", "SHAP_summary.png", "evaluation_metrics.csv"]
+                "artifacts": ["best_model.joblib", "preprocessor.pkl", "feature_names.pkl", "model_manifest.json"]
             },
             "runs": [
                 {
-                    "run_id": "run_xgb_prod_2026_07",
-                    "run_name": "XGBoost_HyperTuned_Production",
+                    "run_id": "run_xgb_champion_2026",
+                    "run_name": "XGBoost_Champion_v2.0.0",
                     "status": "FINISHED",
                     "training_time": "14.2s",
-                    "start_time": "2026-07-23 10:15:00",
-                    "metrics": {"f1_score": 0.9514, "accuracy": 0.985, "roc_auc": 0.989},
-                    "params": {"n_estimators": "200", "max_depth": "6", "learning_rate": "0.05"},
-                    "artifacts": ["model/model.pkl", "preprocessor.pkl", "SHAP_summary.png"]
+                    "start_time": "2026-09-27 12:00:28",
+                    "metrics": {"f1_score": 0.8250, "accuracy": 0.8420, "roc_auc": 0.8870, "optimal_threshold": 0.8781},
+                    "params": {"n_estimators": "300", "max_depth": "9", "learning_rate": "0.1"},
+                    "artifacts": ["best_model.joblib", "preprocessor.pkl", "feature_names.pkl"]
                 },
                 {
                     "run_id": "run_rf_baseline_2026",
                     "run_name": "RandomForest_Baseline",
                     "status": "FINISHED",
                     "training_time": "11.8s",
-                    "start_time": "2026-07-22 16:30:00",
-                    "metrics": {"f1_score": 0.924, "accuracy": 0.968, "roc_auc": 0.971},
-                    "params": {"n_estimators": "100", "max_depth": "10"},
-                    "artifacts": ["model/model.pkl"]
+                    "start_time": "2026-09-27 11:45:00",
+                    "metrics": {"f1_score": 0.8100, "accuracy": 0.8290, "roc_auc": 0.8710},
+                    "params": {"n_estimators": "100", "max_depth": "15"},
+                    "artifacts": ["random_forest_pipeline.joblib"]
                 }
             ],
             "experiments": [

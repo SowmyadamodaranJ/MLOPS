@@ -30,7 +30,15 @@ def _read_version_file() -> str:
 
 
 def _detect_model_version() -> tuple[str, str]:
-    """Detect the active model version from best_model_meta.json."""
+    """Detect the active model version from model_manifest.json or best_model_meta.json."""
+    manifest_path = PROJECT_ROOT / "models" / "saved_models" / "model_manifest.json"
+    if manifest_path.exists():
+        try:
+            data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            return data.get("algorithm", "XGBoost"), data.get("model_version", "2.0.0")
+        except (json.JSONDecodeError, OSError):
+            pass
+
     meta_path = PROJECT_ROOT / "reports" / "metrics" / "best_model_meta.json"
     if not meta_path.exists():
         return "unknown", "unknown"
@@ -50,10 +58,15 @@ def _detect_mlflow_model() -> str:
         tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", f"sqlite:///{PROJECT_ROOT}/mlflow.db")
         mlflow.set_tracking_uri(tracking_uri)
         client = mlflow.tracking.MlflowClient()
-        versions = client.get_latest_versions("PdM_BestModel")
+        try:
+            m = client.get_model_version_by_alias("PdM_BestModel", "champion")
+            return f"v{m.version} (@champion)"
+        except Exception:
+            pass
+        versions = client.search_model_versions("name='PdM_BestModel'")
         if versions:
             v = versions[0]
-            return f"v{v.version} ({v.current_stage})"
+            return f"v{v.version}"
         return "no versions registered"
     except Exception:
         return "mlflow unavailable"
@@ -95,11 +108,11 @@ def collect_version_info() -> dict:
 def print_table(info: dict) -> None:
     """Print a human-readable version table."""
     print()
-    print("  ╔══════════════════════════════════════════════════════════════╗")
-    print("  ║      Smart Factory PDM — Component Version Matrix           ║")
-    print("  ╠══════════════════════════════════╦═══════════════════════════╣")
-    print(f"  ║  {'Component':<32} ║ {'Version / Detail':<25} ║")
-    print("  ╠══════════════════════════════════╬═══════════════════════════╣")
+    print("  +--------------------------------------------------------------+")
+    print("  |      Smart Factory PDM -- Component Version Matrix           |")
+    print("  +----------------------------------+---------------------------+")
+    print(f"  |  {'Component':<32} | {'Version / Detail':<25} |")
+    print("  +----------------------------------+---------------------------+")
 
     rows = [
         ("Platform Version",      info["project"]),
@@ -111,9 +124,9 @@ def print_table(info: dict) -> None:
         ("Python Runtime",        info["python"]),
     ]
     for label, value in rows:
-        print(f"  ║  {label:<32} ║ {value:<25} ║")
+        print(f"  |  {label:<32} | {value:<25} |")
 
-    print("  ╚══════════════════════════════════╩═══════════════════════════╝")
+    print("  +----------------------------------+---------------------------+")
     print()
 
 

@@ -260,6 +260,59 @@ export interface HistoryEntry {
   risk_level: string;
 }
 
+// ─── Live ML Experiment Types ───────────────────────────────────────────────
+export interface ExperimentStep {
+  id: string;
+  name: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  duration_s: number;
+  details: string;
+}
+
+export interface ModelComparisonResult {
+  model: string;
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1_score: number;
+  roc_auc: number;
+  training_time_s: number;
+  inference_latency_ms: number;
+  is_champion: boolean;
+}
+
+export interface ExperimentStatusData {
+  status: 'IDLE' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  progress: number;
+  current_step: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error_message: string | null;
+  steps: ExperimentStep[];
+  results: ModelComparisonResult[];
+  champion: {
+    model_name: string;
+    f1_score: number;
+    roc_auc: number;
+    reason: string;
+    algorithm: string;
+    optimal_threshold: number;
+  } | null;
+  mlflow_run_id: string | null;
+}
+
+export interface ExperimentHistoryItem {
+  run_id: string;
+  timestamp: string;
+  dataset: string;
+  best_model: string;
+  champion_f1: number;
+  champion_roc_auc: number;
+  status: string;
+  models_count: number;
+  models: ModelComparisonResult[];
+}
+
 // ─── Navigation ──────────────────────────────────────────────────────────────
 export interface NavItem {
   label: string;

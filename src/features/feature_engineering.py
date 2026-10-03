@@ -170,7 +170,7 @@ class FeatureEngineer:
         circular nature of time.  Raw integers are also kept for tree models.
         """
         logger.info("  Adding calendar features (cyclic encoding) …")
-        dt = df["datetime"]
+        dt = pd.to_datetime(df["datetime"])
 
         hour      = dt.dt.hour
         dow       = dt.dt.dayofweek
@@ -262,32 +262,13 @@ class FeatureEngineer:
             # Strategy: within each machineID group, forward-fill the datetime
             # of the last maint event, then compute the difference.
 
-            def _time_since(group: pd.DataFrame, comp_col: str) -> pd.Series:
-                """Return hours-since-last-maint Series for one machine group."""
-                last_maint_time = pd.NaT
-                result = []
-                for _, row in group.iterrows():
-                    if row[comp_col] > 0:
-                        # Maintenance occurred at this timestamp
-                        last_maint_time = row["datetime"]
-                    if pd.isna(last_maint_time):
-                        result.append(np.nan)
-                    else:
-                        delta_hours = (
-                            row["datetime"] - last_maint_time
-                        ).total_seconds() / 3600.0
-                        result.append(delta_hours)
-                return pd.Series(result, index=group.index)
-
             logger.info("    Computing %s …", hours_col)
+            maint_dt = df["datetime"].where(df[comp] > 0)
+            last_maint = maint_dt.groupby(df["machineID"]).ffill()
             df[hours_col] = (
-                df.groupby("machineID", group_keys=False)
-                .apply(lambda g: _time_since(g, comp))
+                ((df["datetime"] - last_maint).dt.total_seconds() / 3600.0)
+                .fillna(8760.0)
             )
-
-            # Fill NaN (no prior maintenance) with a large sentinel value
-            # representing "never maintained" — 8760h = 1 year
-            df[hours_col] = df[hours_col].fillna(8760.0)
 
             # ── Rolling 30-day cumulative maintenance count ──────────────────
             # 30 days × 24 hours = 720 hourly rows
@@ -328,6 +309,9 @@ class FeatureEngineer:
         logger.info("STEP 4: Feature Engineering")
         logger.info("=" * 60)
         logger.info("  Input shape: %s", df.shape)
+
+        if "datetime" in df.columns and not pd.api.types.is_datetime64_any_dtype(df["datetime"]):
+            df["datetime"] = pd.to_datetime(df["datetime"])
 
         df = self._sort(df)
         df = self._rolling_features(df)

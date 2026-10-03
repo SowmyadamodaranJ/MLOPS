@@ -132,42 +132,29 @@ class DataLoader:
             datasets[key] = df
 
         logger.info("All five datasets loaded and validated successfully.\n")
-        
-        logger.info("Expanding and shifting datasets to cover the last two years (2024-07-19 to 2026-07-18) ...")
-        def _shift_to_last_two_years(df: pd.DataFrame) -> pd.DataFrame:
-            if "datetime" not in df.columns:
-                return df
-            df = df.copy()
-            df["datetime"] = pd.to_datetime(df["datetime"])
-            
-            # First year: shift from 2015 to 2024-07-19 (3487 days)
-            df_y1 = df.copy()
-            df_y1["datetime"] = df_y1["datetime"] + pd.Timedelta(days=3487)
-            
-            # Second year: shift from 2015 to 2025-07-19 (3852 days)
-            df_y2 = df.copy()
-            df_y2["datetime"] = df_y2["datetime"] + pd.Timedelta(days=3852)
-            
-            combined = pd.concat([df_y1, df_y2], ignore_index=True)
-            if "machineID" in combined.columns:
-                combined = combined.sort_values(["machineID", "datetime"]).reset_index(drop=True)
-            else:
-                combined = combined.sort_values("datetime").reset_index(drop=True)
-            return combined
 
-        telemetry_2y = _shift_to_last_two_years(datasets["telemetry"])
-        errors_2y = _shift_to_last_two_years(datasets["errors"])
-        failures_2y = _shift_to_last_two_years(datasets["failures"])
-        maint_2y = _shift_to_last_two_years(datasets["maint"])
-        machines_df = datasets["machines"]
+        # ── Parse datetime columns (no duplication / no date shifting) ────────
+        # Previous implementation duplicated each dataset by creating two
+        # shifted copies (Year 1 + Year 2), causing 100% train/test overlap
+        # on a chronological split.  This fix loads each CSV exactly once.
+        for key in ["telemetry", "errors", "failures", "maint"]:
+            if "datetime" in datasets[key].columns:
+                datasets[key]["datetime"] = pd.to_datetime(
+                    datasets[key]["datetime"]
+                )
 
-        logger.info("Datasets successfully expanded to 2 years. Telemetry shape: %s", telemetry_2y.shape)
+        logger.info(
+            "Datasets loaded (single-pass, no duplication). "
+            "Telemetry shape: %s",
+            datasets["telemetry"].shape,
+        )
+
         return (
-            telemetry_2y,
-            errors_2y,
-            failures_2y,
-            maint_2y,
-            machines_df,
+            datasets["telemetry"],
+            datasets["errors"],
+            datasets["failures"],
+            datasets["maint"],
+            datasets["machines"],
         )
 
 

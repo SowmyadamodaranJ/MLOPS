@@ -34,6 +34,7 @@
     "age"
   ],
   "primary_metric": "f1_score",
-  "optimal_threshold": 0.5,
+  "selected_metric_value": 0.8250,
+  "optimal_threshold": 0.8781,
   "split_strategy": "chronological_70_30"
 }

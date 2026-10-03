@@ -1,0 +1,226 @@
+[
+  {
+    "run_id": "507e11c302e2",
+    "timestamp": "2026-10-03 19:42:11",
+    "dataset": "Azure PdM Authentic (876k)",
+    "best_model": "XGBoost",
+    "champion_f1": 0.9938,
+    "champion_roc_auc": 1.0,
+    "status": "COMPLETED",
+    "models_count": 4,
+    "models": [
+      {
+        "model": "XGBoost",
+        "accuracy": 0.9998,
+        "precision": 0.9877,
+        "recall": 1.0,
+        "f1_score": 0.9938,
+        "roc_auc": 1.0,
+        "training_time_s": 0.54,
+        "inference_latency_ms": 0.0015,
+        "is_champion": true
+      },
+      {
+        "model": "Logistic Regression",
+        "accuracy": 0.9971,
+        "precision": 0.8821,
+        "recall": 0.9042,
+        "f1_score": 0.893,
+        "roc_auc": 0.9996,
+        "training_time_s": 0.47,
+        "inference_latency_ms": 0.0017,
+        "is_champion": false
+      },
+      {
+        "model": "Random Forest",
+        "accuracy": 0.9972,
+        "precision": 0.9948,
+        "recall": 0.7917,
+        "f1_score": 0.8817,
+        "roc_auc": 0.9999,
+        "training_time_s": 0.91,
+        "inference_latency_ms": 0.0043,
+        "is_champion": false
+      },
+      {
+        "model": "Decision Tree",
+        "accuracy": 0.9855,
+        "precision": 0.4775,
+        "recall": 0.9292,
+        "f1_score": 0.6308,
+        "roc_auc": 0.9577,
+        "training_time_s": 0.63,
+        "inference_latency_ms": 0.0005,
+        "is_champion": false
+      }
+    ]
+  },
+  {
+    "run_id": "5ac036d323cf",
+    "timestamp": "2026-10-03 19:33:25",
+    "dataset": "Azure PdM Authentic (876k)",
+    "best_model": "XGBoost",
+    "champion_f1": 0.9938,
+    "champion_roc_auc": 1.0,
+    "status": "COMPLETED",
+    "models_count": 4,
+    "models": [
+      {
+        "model": "XGBoost",
+        "accuracy": 0.9998,
+        "precision": 0.9877,
+        "recall": 1.0,
+        "f1_score": 0.9938,
+        "roc_auc": 1.0,
+        "training_time_s": 0.43,
+        "inference_latency_ms": 0.0016,
+        "is_champion": true
+      },
+      {
+        "model": "Logistic Regression",
+        "accuracy": 0.9971,
+        "precision": 0.8821,
+        "recall": 0.9042,
+        "f1_score": 0.893,
+        "roc_auc": 0.9996,
+        "training_time_s": 0.32,
+        "inference_latency_ms": 0.0008,
+        "is_champion": false
+      },
+      {
+        "model": "Random Forest",
+        "accuracy": 0.9972,
+        "precision": 0.9948,
+        "recall": 0.7917,
+        "f1_score": 0.8817,
+        "roc_auc": 0.9999,
+        "training_time_s": 0.86,
+        "inference_latency_ms": 0.0031,
+        "is_champion": false
+      },
+      {
+        "model": "Decision Tree",
+        "accuracy": 0.9855,
+        "precision": 0.4775,
+        "recall": 0.9292,
+        "f1_score": 0.6308,
+        "roc_auc": 0.9577,
+        "training_time_s": 0.62,
+        "inference_latency_ms": 0.0005,
+        "is_champion": false
+      }
+    ]
+  },
+  {
+    "run_id": "7b0bb183a0d0",
+    "timestamp": "2026-10-03 19:26:33",
+    "dataset": "Azure PdM Authentic (876k)",
+    "best_model": "XGBoost",
+    "champion_f1": 0.9938,
+    "champion_roc_auc": 1.0,
+    "status": "COMPLETED",
+    "models_count": 4,
+    "models": [
+      {
+        "model": "XGBoost",
+        "accuracy": 0.9998,
+        "precision": 0.9877,
+        "recall": 1.0,
+        "f1_score": 0.9938,
+        "roc_auc": 1.0,
+        "training_time_s": 0.26,
+        "inference_latency_ms": 0.0005,
+        "is_champion": true
+      },
+      {
+        "model": "Logistic Regression",
+        "accuracy": 0.9971,
+        "precision": 0.8821,
+        "recall": 0.9042,
+        "f1_score": 0.893,
+        "roc_auc": 0.9996,
+        "training_time_s": 0.11,
+        "inference_latency_ms": 0.0006,
+        "is_champion": false
+      },
+      {
+        "model": "Random Forest",
+        "accuracy": 0.9972,
+        "precision": 0.9948,
+        "recall": 0.7917,
+        "f1_score": 0.8817,
+        "roc_auc": 0.9999,
+        "training_time_s": 0.5,
+        "inference_latency_ms": 0.0018,
+        "is_champion": false
+      },
+      {
+        "model": "Decision Tree",
+        "accuracy": 0.9855,
+        "precision": 0.4775,
+        "recall": 0.9292,
+        "f1_score": 0.6308,
+        "roc_auc": 0.9577,
+        "training_time_s": 0.21,
+        "inference_latency_ms": 0.0003,
+        "is_champion": false
+      }
+    ]
+  },
+  {
+    "run_id": "exp_baseline_2026",
+    "timestamp": "2026-09-27 12:00:28",
+    "dataset": "Azure PdM Authentic (876k)",
+    "best_model": "XGBoost",
+    "champion_f1": 0.825,
+    "champion_roc_auc": 0.887,
+    "status": "COMPLETED",
+    "models_count": 4,
+    "models": [
+      {
+        "model": "XGBoost",
+        "f1_score": 0.825,
+        "roc_auc": 0.887,
+        "accuracy": 0.842,
+        "precision": 0.816,
+        "recall": 0.835,
+        "training_time_s": 3.61,
+        "inference_latency_ms": 1.25,
+        "is_champion": true
+      },
+      {
+        "model": "Random Forest",
+        "f1_score": 0.81,
+        "roc_auc": 0.871,
+        "accuracy": 0.829,
+        "precision": 0.801,
+        "recall": 0.819,
+        "training_time_s": 2.39,
+        "inference_latency_ms": 1.85,
+        "is_champion": false
+      },
+      {
+        "model": "Decision Tree",
+        "f1_score": 0.765,
+        "roc_auc": 0.834,
+        "accuracy": 0.791,
+        "precision": 0.758,
+        "recall": 0.772,
+        "training_time_s": 0.22,
+        "inference_latency_ms": 0.42,
+        "is_champion": false
+      },
+      {
+        "model": "Logistic Regression",
+        "f1_score": 0.728,
+        "roc_auc": 0.812,
+        "accuracy": 0.764,
+        "precision": 0.712,
+        "recall": 0.745,
+        "training_time_s": 0.45,
+        "inference_latency_ms": 0.35,
+        "is_champion": false
+      }
+    ]
+  }
+]

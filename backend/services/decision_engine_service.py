@@ -13,6 +13,7 @@ represent physical machine wear measurements or calibrated physical failure prob
 """
 
 import os
+import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 import yaml
@@ -50,6 +51,11 @@ class DecisionEngineService:
         self.model_service = ModelService()
         self.feature_service = FeatureService()
         self.explain_service = ExplainService()
+
+        # Cache for fleet-wide health queue
+        self._health_queue_cache: Optional[List[Dict[str, Any]]] = None
+        self._health_queue_cache_time: float = 0.0
+        self._cache_ttl: float = 60.0  # seconds
 
         # Load operational configuration
         self._load_config()
@@ -400,6 +406,11 @@ class DecisionEngineService:
         if not self.feature_service.features_cache or pipe is None or not feature_names:
             return []
 
+        # Return cached queue if available and within TTL
+        if not risk_tier_filter and (limit is None or limit <= 0):
+            if self._health_queue_cache is not None and (time.time() - self._health_queue_cache_time) < self._cache_ttl:
+                return [dict(item) for item in self._health_queue_cache]
+
         # Gather real machines
         machine_ids = sorted(list(self.feature_service.features_cache.keys()))
         df = pd.DataFrame([self.feature_service.features_cache[m] for m in machine_ids])
@@ -475,7 +486,13 @@ class DecisionEngineService:
 
         # Remove internal sort key
         for item in queue:
-            del item["_tier_rank"]
+            if "_tier_rank" in item:
+                del item["_tier_rank"]
+
+        # Store full queue in cache
+        if not risk_tier_filter and (limit is None or limit <= 0):
+            self._health_queue_cache = [dict(item) for item in queue]
+            self._health_queue_cache_time = time.time()
 
         if limit is not None and limit > 0:
             queue = queue[:limit]

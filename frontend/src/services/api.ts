@@ -77,6 +77,16 @@ export const fetchMachines = () =>
 export const fetchMachineFeatures = (machineId: number) =>
   api.get(`/machines/${machineId}/features`).then((r) => r.data.data!);
 
+export const fetchMachineDecision = (machineId: number) =>
+  api.get(`/machines/${machineId}/decision`).then((r) => r.data.data!);
+
+export const fetchHealthQueue = (riskTier?: string, limit?: number) => {
+  const params: Record<string, any> = {};
+  if (riskTier) params.risk_tier = riskTier;
+  if (limit) params.limit = limit;
+  return api.get('/machines/health-queue', { params }).then((r) => r.data.data!);
+};
+
 export const postPrediction = (features: Record<string, any>) =>
   api.post<PredictionResponse>('/predict', features).then((r) => r.data);
 
@@ -134,5 +144,19 @@ export const getExportLogsUrl = (search?: string, riskLevel?: string) => {
   if (riskLevel) query.append('risk_level', riskLevel);
   return `/api/monitoring/logs/export?${query.toString()}`;
 };
+
+// ─── Live ML Experiment Workflow ─────────────────────────────────────────────
+
+export const runExperiment = () =>
+  api.post('/experiment/run').then((r) => r.data);
+
+export const fetchExperimentStatus = () =>
+  api.get('/experiment/status').then((r) => r.data);
+
+export const fetchExperimentHistory = () =>
+  api.get('/experiment/history').then((r) => r.data);
+
+export const postPromoteChampion = (modelName: string) =>
+  api.post('/experiment/promote', { model_name: modelName }).then((r) => r.data);
 
 export default api;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '../hooks/useQuery';
-import { fetchDashboard, fetchHistory } from '../services/api';
+import { fetchDashboard, fetchHistory, fetchMachineDecision } from '../services/api';
 import MetricCard from '../components/ui/MetricCard';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import AIInsightCards, { AIInsight } from '../components/ui/AIInsightCards';
@@ -49,36 +49,39 @@ function DashboardContent() {
   const kpis = dashboardData?.kpis;
   const history = historyData?.history || [];
 
-  // Machine distribution data
+  // Machine distribution data from live backend/model outputs
   const pieData = kpis ? [
     { name: 'Healthy', value: kpis.healthy_machines, color: '#10b981' },
     { name: 'Warning', value: kpis.warning_machines, color: '#f59e0b' },
     { name: 'Critical', value: kpis.critical_machines, color: '#f43f5e' }
-  ] : [
-    { name: 'Healthy', value: 82, color: '#10b981' },
-    { name: 'Warning', value: 12, color: '#f59e0b' },
-    { name: 'Critical', value: 6, color: '#f43f5e' }
-  ];
+  ] : [];
 
-  const handleSelectMachineFromId = (mId: string) => {
-    setSelectedMachine({
-      machineID: mId,
-      model: 'model3',
-      age: 10,
-      status: mId === '104' ? 'Critical' : mId === '042' ? 'Warning' : 'Healthy',
-      healthScore: mId === '104' ? 32 : mId === '042' ? 65 : 98,
-      failureProbability: mId === '104' ? 0.942 : mId === '042' ? 0.685 : 0.041,
-      confidence: 0.985,
-      volt: mId === '104' ? 195.4 : 170.0,
-      rotate: mId === '104' ? 520.0 : 450.0,
-      pressure: mId === '104' ? 142.1 : 100.0,
-      vibration: mId === '104' ? 58.4 : 40.0,
-      estDowntimeHrs: mId === '104' ? 48 : 24,
-      estRepairCostUsd: mId === '104' ? 18500 : 8500,
-      recommendation: mId === '104'
-        ? 'Schedule bearing replacement within 24h. Abnormal vibration detected.'
-        : 'Recalibrate pressure valves during routine maintenance window.',
-    });
+  const handleSelectMachineFromId = async (mId: string) => {
+    try {
+      const numId = parseInt(mId.replace(/\D/g, ''), 10) || 1;
+      const decRes = await fetchMachineDecision(numId);
+      const dec = (decRes as any)?.data || decRes;
+      if (dec) {
+        setSelectedMachine({
+          machineID: String(dec.machine_id),
+          model: dec.telemetry?.model || 'model3',
+          age: dec.telemetry?.age || 10,
+          status: dec.risk_tier === 'CRITICAL' ? 'Critical' : dec.risk_tier === 'WARNING' ? 'Warning' : 'Healthy',
+          healthScore: dec.health_score ?? 95,
+          failureProbability: dec.failure_probability ?? 0.05,
+          confidence: Math.round(Math.max(dec.failure_probability ?? 0.5, 1 - (dec.failure_probability ?? 0.5)) * 1000) / 1000,
+          volt: dec.telemetry?.volt ?? 170.0,
+          rotate: dec.telemetry?.rotate ?? 450.0,
+          pressure: dec.telemetry?.pressure ?? 100.0,
+          vibration: dec.telemetry?.vibration ?? 40.0,
+          estDowntimeHrs: dec.risk_tier === 'CRITICAL' ? 48 : dec.risk_tier === 'WARNING' ? 24 : 0,
+          estRepairCostUsd: dec.risk_tier === 'CRITICAL' ? 18500 : dec.risk_tier === 'WARNING' ? 8500 : 0,
+          recommendation: dec.maintenance_action || dec.recommended_action || 'Continue routine operational monitoring.',
+        });
+      }
+    } catch (e) {
+      console.warn('Could not fetch machine decision:', e);
+    }
   };
 
   const handleExportHistory = () => {
@@ -186,7 +189,7 @@ function DashboardContent() {
               </div>
               <div>
                 <p className="text-xl font-bold text-white">
-                  <AnimatedCounter value={97.2} decimals={1} suffix="%" />
+                  <AnimatedCounter value={kpis ? kpis.model_f1_score * 100 : 82.5} decimals={1} suffix="%" />
                 </p>
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Model F1</p>
               </div>
@@ -222,7 +225,7 @@ function DashboardContent() {
               </div>
               <div>
                 <span className="text-gray-500 block text-[10px] font-medium">Feature Count</span>
-                <span className="font-bold text-white">48 Telemetry Features</span>
+                <span className="font-bold text-white">31 Telemetry Features</span>
               </div>
               <div>
                 <span className="text-gray-500 block text-[10px] font-medium">Dataset</span>

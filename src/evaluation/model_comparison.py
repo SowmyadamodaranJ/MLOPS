@@ -79,6 +79,7 @@ class ModelComparison:
         models: Dict[str, Pipeline],
         feature_names: List[str],
         optimal_thresholds: Optional[Dict[str, float]] = None,
+        selected_metric_value: Optional[float] = None,
     ) -> None:
         """
         Persist the best pipeline and its components.
@@ -89,7 +90,8 @@ class ModelComparison:
         saved_models/preprocessor.pkl   (if scaler step exists)
         saved_models/feature_names.pkl
         saved_models/label_encoder.pkl  (binary target label map)
-        reports/metrics/best_model_meta.json  (includes optimal_threshold)
+        reports/metrics/best_model_meta.json  (includes optimal_threshold and selected_metric_value)
+        models/saved_models/model_manifest.json (updated with optimal_threshold)
         """
         pipe = models[best_name]
 
@@ -125,19 +127,36 @@ class ModelComparison:
 
         # best_model_meta.json — includes optimal_threshold for API use
         meta = {
-            "model_name":        best_name,
-            "feature_names":     feature_names,
-            "primary_metric":    self.primary_metric,
-            "optimal_threshold": optimal_thr,
-            "split_strategy":    "chronological_70_30",
+            "model_name":            best_name,
+            "feature_names":         feature_names,
+            "primary_metric":        self.primary_metric,
+            "selected_metric_value": round(float(selected_metric_value), 4) if selected_metric_value is not None else None,
+            "optimal_threshold":     round(float(optimal_thr), 4),
+            "split_strategy":        "chronological_70_30",
         }
         meta_path = self.metrics_dir / "best_model_meta.json"
         with open(meta_path, "w", encoding="utf-8") as fh:
             json.dump(meta, fh, indent=2)
         logger.info("  [Comparison] best_model_meta.json → %s", meta_path)
+
+        # Sync with model_manifest.json if present
+        manifest_path = self.models_dir / "model_manifest.json"
+        if manifest_path.exists():
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as fh:
+                    manifest = json.load(fh)
+                manifest["optimal_threshold"] = round(float(optimal_thr), 4)
+                if selected_metric_value is not None:
+                    manifest["selected_metric_value"] = round(float(selected_metric_value), 4)
+                with open(manifest_path, "w", encoding="utf-8") as fh:
+                    json.dump(manifest, fh, indent=2)
+                logger.info("  [Comparison] model_manifest.json synced with optimal threshold: %.4f", optimal_thr)
+            except Exception as e:
+                logger.warning("Could not update model_manifest.json: %s", e)
+
         logger.info(
-            "  [Comparison] Best model: %s | Optimal threshold: %.4f",
-            best_name, optimal_thr,
+            "  [Comparison] Best model: %s | Metric: %.4f | Optimal threshold: %.4f",
+            best_name, selected_metric_value or 0.0, optimal_thr,
         )
 
     def save_all_models(self, models: Dict[str, Pipeline]) -> None:
@@ -203,7 +222,9 @@ class ModelComparison:
         logger.info("\n%s\n", comparison_df.to_string(index=False))
 
         best_name = self.select_best(metrics_df)
-        self.save_best_model(best_name, models, feature_names, optimal_thresholds)
+        metric = self.primary_metric if self.primary_metric in metrics_df.columns else "f1_score"
+        best_score = float(metrics_df.loc[metrics_df["model"] == best_name, metric].values[0]) if not metrics_df.empty else None
+        self.save_best_model(best_name, models, feature_names, optimal_thresholds, selected_metric_value=best_score)
         self.save_all_models(models)
 
         return best_name, models[best_name], comparison_df

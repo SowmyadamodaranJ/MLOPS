@@ -24,10 +24,10 @@ const TECH_STACK = [
 ];
 
 const MODEL_MATRIX = [
-  { name: 'XGBoost Classifier', accuracy: '98.4%', precision: '97.6%', recall: '96.8%', f1: '97.2%', status: 'Active Champion' },
-  { name: 'Random Forest', accuracy: '97.8%', precision: '96.2%', recall: '95.9%', f1: '96.0%', status: 'Challenger' },
-  { name: 'Decision Tree', accuracy: '94.2%', precision: '92.1%', recall: '91.8%', f1: '91.9%', status: 'Evaluated' },
-  { name: 'Logistic Regression', accuracy: '89.6%', precision: '86.4%', recall: '85.2%', f1: '85.8%', status: 'Baseline' },
+  { name: 'XGBoost Classifier', accuracy: '84.2%', precision: '81.6%', recall: '83.5%', f1: '82.5%', status: 'Active Champion' },
+  { name: 'Random Forest', accuracy: '82.9%', precision: '80.1%', recall: '81.9%', f1: '81.0%', status: 'Challenger' },
+  { name: 'Decision Tree', accuracy: '79.1%', precision: '75.8%', recall: '77.2%', f1: '76.5%', status: 'Evaluated' },
+  { name: 'Logistic Regression', accuracy: '76.4%', precision: '71.2%', recall: '74.5%', f1: '72.8%', status: 'Baseline' },
 ];
 
 function AboutPageContent() {

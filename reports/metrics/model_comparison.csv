@@ -1,5 +1,5 @@
-model,accuracy,precision,recall,f1_score,roc_auc
-Logistic Regression,0.9766,0.4455,0.9978,0.616,0.9967
-Decision Tree,0.9993,0.9732,0.991,0.982,0.9953
-Random Forest,0.9991,0.9527,0.9997,0.9756,1.0
-XGBoost,0.9994,0.9674,1.0,0.9834,1.0
+model,accuracy,precision,recall,f1_score,roc_auc,training_time_s,inference_latency_ms,is_champion
+XGBoost,0.9998,0.9877,1.0,0.9938,1.0,0.54,0.0015,True
+Logistic Regression,0.9971,0.8821,0.9042,0.893,0.9996,0.47,0.0017,False
+Random Forest,0.9972,0.9948,0.7917,0.8817,0.9999,0.91,0.0043,False
+Decision Tree,0.9855,0.4775,0.9292,0.6308,0.9577,0.63,0.0005,False

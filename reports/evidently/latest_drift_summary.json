@@ -62,6 +62,6 @@
     "training_vs_production_kl_divergence": 0.038,
     "avg_confidence_drop": 0.012
   },
-  "report_file_html": "drift_report_20260928_182411.html",
-  "timestamp": "2026-09-28T18:24:11.574339"
+  "report_file_html": "drift_report_20261003_195206.html",
+  "timestamp": "2026-10-03T19:52:07.214488"
 }
